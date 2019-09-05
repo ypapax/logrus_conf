@@ -14,6 +14,7 @@ import (
 type FilesConf struct {
 	FileNameSuffix string
 	LogLevels      []logrus.Level
+	file           *os.File
 }
 
 func AllLevelFiles(dir, appName string, level logrus.Level) error {
@@ -37,7 +38,6 @@ func AllLevelFiles(dir, appName string, level logrus.Level) error {
 				logrus.PanicLevel,
 				logrus.FatalLevel,
 				logrus.ErrorLevel,
-				logrus.WarnLevel,
 			},
 		},
 		{
@@ -52,33 +52,42 @@ func AllLevelFiles(dir, appName string, level logrus.Level) error {
 		{
 			FileNameSuffix: "info.log",
 			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+				logrus.FatalLevel,
+				logrus.ErrorLevel,
+				logrus.WarnLevel,
 				logrus.InfoLevel,
-				logrus.DebugLevel,
-				logrus.TraceLevel,
 			},
 		},
 		{
 			FileNameSuffix: "debug.log",
 			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+				logrus.FatalLevel,
+				logrus.ErrorLevel,
+				logrus.WarnLevel,
+				logrus.InfoLevel,
 				logrus.DebugLevel,
-				logrus.TraceLevel,
 			},
 		},
 		{
 			FileNameSuffix: "trace.log",
 			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+				logrus.FatalLevel,
+				logrus.ErrorLevel,
+				logrus.WarnLevel,
+				logrus.InfoLevel,
+				logrus.DebugLevel,
 				logrus.TraceLevel,
 			},
 		},
 	}
-	return Files(appName, dir, level, ff)
+	return Files(dir, appName, level, ff)
 }
 
 func Files(dir, appName string, level logrus.Level, ff []FilesConf) error {
-
-	logrus.SetReportCaller(true)
-	logrus.SetOutput(ioutil.Discard)
-	for _, f := range ff {
+	for i, f := range ff {
 		os.Remove(f.FileNameSuffix)
 		fullFileName := filepath.Join(dir, fmt.Sprintf("%+v.%+v", appName, f.FileNameSuffix))
 		file, err := os.Create(fullFileName)
@@ -86,9 +95,14 @@ func Files(dir, appName string, level logrus.Level, ff []FilesConf) error {
 			err := errors.WithStack(err)
 			return err
 		}
+		ff[i].file = file
 		logrus.Infof("log file %+v for levels: %+v", f.FileNameSuffix, f.LogLevels)
+	}
 
-		mr := io.MultiWriter(os.Stderr, file)
+	logrus.SetReportCaller(true)
+	logrus.SetOutput(ioutil.Discard)
+	for _, f := range ff {
+		mr := io.MultiWriter(os.Stderr, f.file)
 		logrus.AddHook(&WriterHook{
 			Writer:    mr,
 			LogLevels: f.LogLevels,
