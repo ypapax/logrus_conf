@@ -2,56 +2,99 @@ package logrus_conf
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-func Files(appName string, level logrus.Level) error {
-	type f struct {
-		Name string
-		File *os.File
-	}
+type FilesConf struct {
+	FileNameSuffix string
+	LogLevels      []logrus.Level
+}
 
-	ff := []f{
-		{Name: fmt.Sprintf("/tmp/%+v.errors.log", appName)},
-		{Name: fmt.Sprintf("/tmp/%+v.info.log", appName)},
+func AllLevelFiles(dir, appName string, level logrus.Level) error {
+	ff := []FilesConf{
+		{
+			FileNameSuffix: "panic.log",
+			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+			},
+		},
+		{
+			FileNameSuffix: "fatal.log",
+			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+				logrus.FatalLevel,
+			},
+		},
+		{
+			FileNameSuffix: "error.log",
+			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+				logrus.FatalLevel,
+				logrus.ErrorLevel,
+				logrus.WarnLevel,
+			},
+		},
+		{
+			FileNameSuffix: "warn.log",
+			LogLevels: []logrus.Level{
+				logrus.PanicLevel,
+				logrus.FatalLevel,
+				logrus.ErrorLevel,
+				logrus.WarnLevel,
+			},
+		},
+		{
+			FileNameSuffix: "info.log",
+			LogLevels: []logrus.Level{
+				logrus.InfoLevel,
+				logrus.DebugLevel,
+				logrus.TraceLevel,
+			},
+		},
+		{
+			FileNameSuffix: "debug.log",
+			LogLevels: []logrus.Level{
+				logrus.DebugLevel,
+				logrus.TraceLevel,
+			},
+		},
+		{
+			FileNameSuffix: "trace.log",
+			LogLevels: []logrus.Level{
+				logrus.TraceLevel,
+			},
+		},
 	}
-	for i, f := range ff {
-		os.Remove(f.Name)
-		file, err := os.Create(f.Name)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-		ff[i].File = file
-		logrus.Infof("log file %+v", f.Name)
-	}
+	return Files(appName, dir, level, ff)
+}
+
+func Files(dir, appName string, level logrus.Level, ff []FilesConf) error {
+
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(ioutil.Discard)
-	errors := io.MultiWriter(os.Stderr, ff[0].File)
-	logrus.AddHook(&WriterHook{
-		Writer: errors,
-		LogLevels: []logrus.Level{
-			logrus.PanicLevel,
-			logrus.FatalLevel,
-			logrus.ErrorLevel,
-			logrus.WarnLevel,
-		},
-	})
+	for _, f := range ff {
+		os.Remove(f.FileNameSuffix)
+		fullFileName := filepath.Join(dir, fmt.Sprintf("%+v.%+v", appName, f.FileNameSuffix))
+		file, err := os.Create(fullFileName)
+		if err != nil {
+			err := errors.WithStack(err)
+			return err
+		}
+		logrus.Infof("log file %+v for levels: %+v", f.FileNameSuffix, f.LogLevels)
 
-	info := io.MultiWriter(os.Stderr, ff[1].File)
-	logrus.AddHook(&WriterHook{
-		Writer: info,
-		LogLevels: []logrus.Level{
-			logrus.InfoLevel,
-			logrus.DebugLevel,
-			logrus.TraceLevel,
-		},
-	})
+		mr := io.MultiWriter(os.Stderr, file)
+		logrus.AddHook(&WriterHook{
+			Writer:    mr,
+			LogLevels: f.LogLevels,
+		})
+	}
 	logrus.SetLevel(level)
-	logrus.Tracef("log level: %+v", logrus.GetLevel())
 	return nil
 }
 
