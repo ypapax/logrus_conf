@@ -12,51 +12,53 @@ import (
 )
 
 type FilesConf struct {
-	FileNameSuffix string
-	LogLevels      []logrus.Level
-	file           *os.File
+	Name      string
+	LogLevels []logrus.Level
+	file      *os.File
 }
+
+const ext = ".log"
 
 func AllLevelFiles(dir, appName string, level logrus.Level) error {
 	ff := []FilesConf{
 		{
-			FileNameSuffix: "panic.log",
+			Name: "panic",
 			LogLevels: []logrus.Level{
 				logrus.PanicLevel,
 			},
 		},
 		{
-			FileNameSuffix: "fatal.log",
+			Name: "fatal",
 			LogLevels: []logrus.Level{
 				logrus.FatalLevel,
 			},
 		},
 		{
-			FileNameSuffix: "error.log",
+			Name: "error",
 			LogLevels: []logrus.Level{
 				logrus.ErrorLevel,
 			},
 		},
 		{
-			FileNameSuffix: "warn.log",
+			Name: "warn",
 			LogLevels: []logrus.Level{
 				logrus.WarnLevel,
 			},
 		},
 		{
-			FileNameSuffix: "info.log",
+			Name: "info",
 			LogLevels: []logrus.Level{
 				logrus.InfoLevel,
 			},
 		},
 		{
-			FileNameSuffix: "debug.log",
+			Name: "debug",
 			LogLevels: []logrus.Level{
 				logrus.DebugLevel,
 			},
 		},
 		{
-			FileNameSuffix: "trace.log",
+			Name: "trace",
 			LogLevels: []logrus.Level{
 				logrus.TraceLevel,
 			},
@@ -67,15 +69,15 @@ func AllLevelFiles(dir, appName string, level logrus.Level) error {
 
 func Files(dir, appName string, level logrus.Level, ff []FilesConf) error {
 	for i, f := range ff {
-		os.Remove(f.FileNameSuffix)
-		fullFileName := filepath.Join(dir, fmt.Sprintf("%+v.%+v", appName, f.FileNameSuffix))
+		os.Remove(f.Name)
+		fullFileName := filepath.Join(dir, fmt.Sprintf("%+v.%+v%s", f.Name, appName, ext))
 		file, err := os.Create(fullFileName)
 		if err != nil {
 			err := errors.WithStack(err)
 			return err
 		}
 		ff[i].file = file
-		logrus.Infof("log file %+v for levels: %+v", f.FileNameSuffix, f.LogLevels)
+		logrus.Infof("log file %+v for levels: %+v", fullFileName, f.LogLevels)
 	}
 
 	logrus.SetReportCaller(true)
