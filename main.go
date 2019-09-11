@@ -28,57 +28,36 @@ func AllLevelFiles(dir, appName string, level logrus.Level) error {
 		{
 			FileNameSuffix: "fatal.log",
 			LogLevels: []logrus.Level{
-				logrus.PanicLevel,
 				logrus.FatalLevel,
 			},
 		},
 		{
 			FileNameSuffix: "error.log",
 			LogLevels: []logrus.Level{
-				logrus.PanicLevel,
-				logrus.FatalLevel,
 				logrus.ErrorLevel,
 			},
 		},
 		{
 			FileNameSuffix: "warn.log",
 			LogLevels: []logrus.Level{
-				logrus.PanicLevel,
-				logrus.FatalLevel,
-				logrus.ErrorLevel,
 				logrus.WarnLevel,
 			},
 		},
 		{
 			FileNameSuffix: "info.log",
 			LogLevels: []logrus.Level{
-				logrus.PanicLevel,
-				logrus.FatalLevel,
-				logrus.ErrorLevel,
-				logrus.WarnLevel,
 				logrus.InfoLevel,
 			},
 		},
 		{
 			FileNameSuffix: "debug.log",
 			LogLevels: []logrus.Level{
-				logrus.PanicLevel,
-				logrus.FatalLevel,
-				logrus.ErrorLevel,
-				logrus.WarnLevel,
-				logrus.InfoLevel,
 				logrus.DebugLevel,
 			},
 		},
 		{
 			FileNameSuffix: "trace.log",
 			LogLevels: []logrus.Level{
-				logrus.PanicLevel,
-				logrus.FatalLevel,
-				logrus.ErrorLevel,
-				logrus.WarnLevel,
-				logrus.InfoLevel,
-				logrus.DebugLevel,
 				logrus.TraceLevel,
 			},
 		},
