@@ -4,12 +4,85 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+const logDirEnvVarName = "LOG_DIR"
+
+const (
+	logLevelEnvName = "LOG_LEVEL"
+	defaultLogLevel = logrus.InfoLevel
+)
+
+func ParseLogLevelFromEnv() (logrus.Level, error) {
+	ll := os.Getenv(logLevelEnvName)
+	if len(ll) == 0 {
+		logrus.Infof("no %+v env, so set default: %+v", logLevelEnvName, defaultLogLevel)
+		return defaultLogLevel, nil
+	}
+	lv, err := logrus.ParseLevel(ll)
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+	return lv, nil
+}
+
+func GetLogDir() string {
+	logPath := os.Getenv(logDirEnvVarName)
+	if len(logPath) == 0 {
+		logrus.Infof("missing %+v env var, so skipping writing to files", logDirEnvVarName)
+		return ""
+	}
+	return logPath
+}
+
+
+func LogToFilesTraceForDev(appName string) error {
+	logPath := GetLogDir()
+	logrus.Tracef("logPath: %+v", logPath)
+	if len(logPath) == 0 {
+		return nil
+	}
+	lvl, err := ParseLogLevelFromEnv()
+	if err != nil {
+		return errors.Wrapf(err, "couldn't get log level from env")
+	}
+	if err := AllLevelFiles(logPath, appName, lvl); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+
+func PrepareFromEnv(appName string) error {
+	log.SetFlags(log.Llongfile | log.LstdFlags)
+	lv, err := ParseLogLevelFromEnv()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	log.Printf("log level from env: %+v\n", lv)
+	Prepare(uint32(lv))
+	if err := LogToFilesTraceForDev(appName); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+func Prepare(logLevel uint32) {
+	customFormatter := logrus.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	}
+	customFormatter.TimestampFormat = "2006-01-02 15:04:05.999999999 -0700"
+	logrus.SetFormatter(&customFormatter)
+	logrus.SetReportCaller(true)
+	logrus.SetLevel(logrus.Level(logLevel))
+}
 
 type FilesConf struct {
 	Name      string
