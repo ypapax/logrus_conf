@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -41,7 +42,6 @@ func GetLogDir() string {
 	return logPath
 }
 
-
 func LogToFilesTraceForDev(appName string) error {
 	logPath := GetLogDir()
 	logrus.Tracef("logPath: %+v", logPath)
@@ -58,7 +58,6 @@ func LogToFilesTraceForDev(appName string) error {
 	return nil
 }
 
-
 func PrepareFromEnv(appName string) error {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
 	lv, err := ParseLogLevelFromEnv()
@@ -73,13 +72,28 @@ func PrepareFromEnv(appName string) error {
 	return nil
 }
 
+const (
+	printFileFullPathEnv = "PRINT_FILE_FULL_PATH"
+)
+
 func Prepare(logLevel uint32) {
-	customFormatter := logrus.TextFormatter{
-		ForceColors:   true,
-		FullTimestamp: true,
+	printFullPath := os.Getenv(printFileFullPathEnv) == "true"
+
+	customFormatter := &logrus.TextFormatter{
+		ForceColors:            true,
+		FullTimestamp:          true,
+		TimestampFormat:        "2006-01-02 15:04:05.999999999 -0700",
+		DisableLevelTruncation: true,
+		PadLevelText:           true,
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			if printFullPath {
+				return "", fmt.Sprintf(" %s:%d", f.File, f.Line)
+			}
+			return "", fmt.Sprintf(" %s:%d", filepath.Base(f.File), f.Line)
+		},
 	}
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05.999999999 -0700"
-	logrus.SetFormatter(&customFormatter)
+
+	logrus.SetFormatter(customFormatter)
 	logrus.SetReportCaller(true)
 	logrus.SetLevel(logrus.Level(logLevel))
 }

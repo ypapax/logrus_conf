@@ -14,3 +14,8 @@ func TestAllLevelFiles(t *testing.T) {
 		return
 	}
 }
+
+func TestPrepareFromEnv(t *testing.T) {
+	logrus_conf.PrepareFromEnv("test")
+	logrus.Infof("hello")
+}
